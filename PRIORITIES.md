@@ -26,11 +26,20 @@ behavior-changing work.
    the server version is known. A synthetic MongoDB round-trip test is still
    required before calling this complete; this checkout has no MongoDB service
    configured.
-3. **Inventory and update Web Survey browser assets.** Determine which
-   JavaScript files are actually served before changing manifests. The checked
-   in bundle configuration selects `jquery-1.*`, despite a newer manifest
-   declaration. Update the deployed assets and validate survey entry,
-   validation, mobile rendering and accessibility.
+3. **Inventory and update Web Survey browser assets.** The inventory found
+   that [`packages.config`](https://github.com/jarz/Epi-Info-Web-Survey/blob/copilot/build-and-test-baseline/Epi.Web/packages.config)
+   declares jQuery 3.5.0, while the primary
+   [layout](https://github.com/jarz/Epi-Info-Web-Survey/blob/copilot/build-and-test-baseline/Epi.Web/Views/Shared/_Layout.cshtml)
+   directly loads jQuery 1.7.1. The report layout loads jQuery 1.12.4 from a
+   CDN. The mobile layout loads both jQuery 1.6.3 and 1.7.1 before jQuery Mobile
+   1.1.1; `Global.asax.cs` registers that mobile display mode for Android,
+   Opera Mobile and iPad, with a browser override. The
+   [jquery bundle](https://github.com/jarz/Epi-Info-Web-Survey/blob/copilot/build-and-test-baseline/Epi.Web/App_Start/BundleConfig.cs)
+   has a `jquery-1.*` wildcard, but no `Scripts.Render` call was found in the
+   views. Do not just update the package manifest: first confirm the mobile
+   display-mode behavior, then modernize the coupled jQuery Mobile/UI/datebox
+   plugins with tests for survey entry, validation, mobile rendering and
+   accessibility.
 4. **Retarget maintained web projects to .NET Framework 4.8.** Treat this as a
    compatibility stage, not a migration to a new architecture. Start with
    products confirmed to be maintained or deployed; validate hosting,
