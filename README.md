@@ -35,5 +35,6 @@ to use another location. Local outputs (`artifacts\`, `scratch\`) are ignored.
 - [Build instructions and selected test baselines](BUILDING.md)
 - [Repository and dependency inventory](INVENTORY.md)
 - [Modernization plan](MODERNIZATION.md)
+- [Prioritized project updates and Cloud deployment evidence](PRIORITIES.md)
 
 Builds do not establish deployment or service compatibility.
