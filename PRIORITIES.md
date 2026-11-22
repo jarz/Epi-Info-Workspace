@@ -17,9 +17,15 @@ behavior-changing work.
 2. **Remediate the Desktop MongoDB dependency cohort.** Community Edition is
    the highest priority product to keep usable: CDC says Desktop remains
    operational, and its MongoDB dependency set includes packages with
-   published advisories. Choose a compatible driver and compression set
-   together, then validate restore, binding redirects, architecture-specific
-   assets, compression and synthetic database operations.
+   published advisories for [Snappier](https://github.com/advisories/GHSA-pggp-6c3x-2xmx)
+   and [SharpCompress](https://github.com/advisories/GHSA-6c8g-7p36-r338).
+   The initial remediation is published on the Community Edition fork branch:
+   Snappier 1.3.1 and SharpCompress 0.48.1, with their compatible .NET
+   Framework dependencies and assembly redirects. The Desktop Release build
+   and four numerical tests pass. The MongoDB driver remains at 2.19.0 until
+   the server version is known. A synthetic MongoDB round-trip test is still
+   required before calling this complete; this checkout has no MongoDB service
+   configured.
 3. **Inventory and update Web Survey browser assets.** Determine which
    JavaScript files are actually served before changing manifests. The checked
    in bundle configuration selects `jquery-1.*`, despite a newer manifest
