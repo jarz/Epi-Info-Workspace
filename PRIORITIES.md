@@ -19,13 +19,15 @@ behavior-changing work.
    operational, and its MongoDB dependency set includes packages with
    published advisories for [Snappier](https://github.com/advisories/GHSA-pggp-6c3x-2xmx)
    and [SharpCompress](https://github.com/advisories/GHSA-6c8g-7p36-r338).
-   The initial remediation is published on the Community Edition fork branch:
-   Snappier 1.3.1 and SharpCompress 0.48.1, with their compatible .NET
-   Framework dependencies and assembly redirects. The Desktop Release build
-   and four numerical tests pass. The MongoDB driver remains at 2.19.0 until
-   the server version is known. A synthetic MongoDB round-trip test is still
-   required before calling this complete; this checkout has no MongoDB service
-   configured.
+   The remediation updates Snappier to 1.3.1 and SharpCompress to 0.48.1,
+   aligns shared .NET Framework dependencies, and adds host-level redirects to
+   all 16 Desktop executable configurations. The Desktop Release rebuild and
+   focused 24-test regression set pass. An x86 runtime smoke test using the
+   `EpiInfo.exe` host configuration successfully loads MongoDB driver types and
+   constructs the MongoDB factory without connecting to a server. The driver
+   remains at 2.19.0 until the server version is known; a database
+   read/write-and-compression round-trip is still unverified because this
+   checkout has no MongoDB service configured.
 3. **Inventory and update Web Survey browser assets.** The inventory found
    that [`packages.config`](https://github.com/jarz/Epi-Info-Web-Survey/blob/copilot/build-and-test-baseline/Epi.Web/packages.config)
    declares jQuery 3.5.0, while the primary
