@@ -7,7 +7,7 @@ compatibility minimums and tests; Cloud migration remains deferred.
 
 ## Recommended order
 
-1. **Verify and revoke any exposed Cloud credentials.** Historical Cloud
+1. **Contain exposed credentials and key material.** Historical Cloud
    configuration in the public repository contains Azure credential values.
    The referenced resource names no longer resolve, but that does not verify
    that credentials were revoked or rule out use of a different resource.
@@ -15,6 +15,19 @@ compatibility minimums and tests; Cloud migration remains deferred.
    rotate any still-active credentials. Do not copy credential values into
    issues or reports. Treat removing secrets from Git history as a separate,
    coordinated operation; the current assessment did not rewrite history.
+   No such owner is currently reachable: CDC ended product development and
+   has not engaged, so revocation cannot be confirmed from the forks. Treat
+   every credential in the public history as compromised.
+
+   **Web key material (fixed in the forks):** Web Survey, Survey API and Web
+   Enter shared one publicly known set of connection-string encryption keys,
+   admin key and (Web Enter) password salt, and Web Enter accepted any admin
+   key. The forks now refuse to start without deployment-specific values,
+   check the admin key again, and provide `Epi.Web.KeyRotation` to move an
+   existing deployment and its encrypted organization keys onto new keys.
+   See [Web key material](BUILDING.md#web-key-material). Tracked
+   configuration files also contain plaintext database credentials for the
+   original operator's servers; only that operator can revoke them.
 2. **Remediate the Desktop MongoDB dependency cohort.** Community Edition is
    the highest priority product to keep usable: CDC says Desktop remains
    operational, and its MongoDB dependency set includes packages with
@@ -119,8 +132,8 @@ compatibility minimums and tests; Cloud migration remains deferred.
    compatibility stage, not a migration to a new architecture. Start with
    products confirmed to be maintained or deployed; validate hosting,
    authentication, session, WCF and database behavior before release.
-5. **Modernize the web test harness.** Web Survey and Web Enter now run 102
-   and 79 tests respectively on net48 with NuGet NUnit 5. Their runners fail
+5. **Modernize the web test harness.** Web Survey and Web Enter now run 141
+   and 131 tests respectively on net48 with NuGet NUnit 5. Their runners fail
    on zero discovery; database, service and hosted paths remain excluded.
 6. **Upgrade web dependency families in coordinated steps.** After focused
    tests exist, address MVC/Web API/Razor/WebPages together, then EF 5 to EF 6.
