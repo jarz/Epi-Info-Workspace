@@ -66,7 +66,9 @@ compatibility minimums and tests; Cloud migration remains deferred.
    behavior. The rebuilt Release application folder passed every check,
    including `adapter.dateTimeRoundTrip`, against disposable MongoDB 4.4.30,
    6.0.28, 7.0.48, 8.0.38, 8.2.12 and 9.0.8; the pre-fix adapter still fails
-   that check against 8.0.38. The MSI was not rebuilt for this change.
+   that check against 8.0.38. The MSI rebuilt from Community Edition
+   `bddc9f4f` passed every check, including the date check, against 4.4.30,
+   8.0.38 and 9.0.8 after administrative extraction.
 
    **Unchanged product defects:** `InsertBulkRows` does not await its writes,
    and `DeleteTable` reports success without deleting. These are separate
@@ -81,9 +83,12 @@ compatibility minimums and tests; Cloud migration remains deferred.
    clean Setup build also could not find the files.
    Community Edition `5c159148` stops embedding them. The build output and MSI
    now include both files, and the extracted MSI reaches the application's
-   existing "no devices" path. Setup still packages copies of the Windows
-   `PortableDeviceApi.dll` and `PortableDeviceTypes.dll` system files, with the
-   same warnings as before; consider excluding them separately.
+   existing "no devices" path. Community Edition `bddc9f4f` also stops Setup
+   from packaging copies of the Windows `PortableDeviceApi.dll` and
+   `PortableDeviceTypes.dll` system files. The rebuilt MSI omits them, its two
+   system-file warnings are gone, and the extracted `PortableDevices.dll`
+   still reaches the "no devices" path using the Windows COM components. No
+   real Android device was tested.
    Runtime evidence is recorded in closed
    [fork issue #3](https://github.com/jarz/Epi-Info-Community-Edition/issues/3)
    and the date-shift fix in closed
@@ -134,6 +139,34 @@ compatibility minimums and tests; Cloud migration remains deferred.
    separate. Adopt SDK-style projects, wider Central Package Management, .NET
    10 and ASP.NET Core incrementally, beginning with isolated, tested leaf
    libraries only after owners and compatibility boundaries are clear.
+
+## Desktop runtime findings
+
+A launch smoke test of the administratively extracted `bddc9f4f` MSI started
+EpiInfo, MakeView, Enter, Analysis, AnalysisDashboard, StatCalc and Mapping.
+Each displayed its main window and kept responding, with no Application Error
+or .NET Runtime crash events. It did not exercise form design, data entry,
+analysis, MongoDB through the user interface, or MSI install/upgrade.
+
+The smoke test and follow-up checks found pre-existing map-service failures,
+tracked in [fork issue #6](https://github.com/jarz/Epi-Info-Community-Edition/issues/6):
+
+- **OpenStreetMap base map blocked (observed).** Mapping uses the vendored
+  ESRI WPF 10.2 `OpenStreetMapLayer`, which requests HTTP tiles without a
+  User-Agent. OpenStreetMap returns HTTP 200 with an `x-blocked` header and an
+  "Access blocked" image, so every tile shows that message. Replace it with a
+  tiled layer that follows the
+  [tile usage policy](https://operations.osmfoundation.org/policies/tiles/)
+  or with another provider.
+- **Zone buffers use a retired ESRI sample server.** `ZoneProvider` and the
+  Dashboard `MapControl` buffer points through
+  `sampleserver3.arcgisonline.com`, which did not resolve on 2026-11-23. The
+  user-interface behavior was not exercised.
+- **Bing Maps key and service.** The Dashboard map and Enter's `GEOCODE`
+  default to a Bing Maps key embedded in source. Microsoft retired free Bing
+  Maps for Enterprise accounts on 2025-06-30, and Enterprise accounts end
+  2028-06-30. The key was not tested because it belongs to CDC. Plan a
+  replacement with a configured key.
 
 ## Deployment evidence and limits
 
