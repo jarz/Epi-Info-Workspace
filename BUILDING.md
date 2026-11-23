@@ -97,7 +97,15 @@ The focused Desktop numerical baseline restores the Desktop solution and test pa
 
 Run `eng\Initialize-Build.ps1` first if the workspace toolchain or private legacy targeting assemblies are not ready. The runner writes timestamped restore/build/VSTest logs, a TRX file, and a JSON summary under `artifacts\tests\Desktop\`. The numerical tests read fixtures directly and do not require the dashboard loader, Jet, or legacy configuration. Existing numeric tolerances are preserved, including the binomial upper-confidence-limit tolerance of one.
 
-These are focused numerical tests, not certification of the entire legacy test project. Other tests still depend on dashboard/data-loading behavior, Jet and legacy configuration paths. Before shipping, isolate and repair those tests, add synthetic-data integration coverage, and run the complete supported suite. See [the modernization plan](MODERNIZATION.md).
+The broader Desktop unit baseline runs those four numerical methods plus 23 check-code and form-metadata tests:
+
+```powershell
+.\eng\Invoke-DesktopUnitBaseline.ps1
+```
+
+The check-code tests parse documented Epi Info 7 User Guide (chapter 13) examples and every check-code block in the checked-in templates with the compiled Enter grammar, assert grammar-grounded rejections, and run documented examples (arithmetic precedence, BMI, concatenation, IF/ELSE with HIDE/UNHIDE, CLEAR/GOTO, DEFINE) through the real Enter interpreter with a recording host. The form-metadata tests compare a new project document with the checked-in XML `.prj` samples and check that the checked-in templates satisfy the MakeView template loader. These tests need no Jet/ACE, UI or machine configuration. The runner fails on zero discovery, any failure, a missing numerical test, or a selected class with no tests. Date-literal check code (locale-dependent), GLOBAL/PERMANENT variables (machine configuration) and full `.prj` loads (Jet metadata) are not covered.
+
+These are focused tests, not certification of the entire legacy test project. Other tests still depend on dashboard/data-loading behavior, Jet and legacy configuration paths. Before shipping, isolate and repair those tests, add synthetic-data integration coverage, and run the complete supported suite. See [the modernization plan](MODERNIZATION.md).
 
 The Cloud metadata test project also has a focused, reproducible subset:
 
@@ -122,13 +130,30 @@ The Cloud Cosmos project has a local wildcard-comparison test that can be run wi
 .\eng\Invoke-CloudCosmosBaseline.ps1
 ```
 
-It intentionally runs only the one test compiled into that project. The separate Cloud WebJob tests call Service Bus and SQL, and the publish/republish test controls a remote WebJob; those integration tests were not run. The Web Survey NUnit project is not yet a viable baseline: it targets .NET 4.0 despite depending on newer application assemblies, points at NUnit binaries from an absent machine installation, its test doubles no longer implement the current service interfaces, and one test calls a removed `SurveyController.Notify` action.
+It intentionally runs only the one test compiled into that project. The separate Cloud WebJob tests call Service Bus and SQL, and the publish/republish test controls a remote WebJob; those integration tests were not run.
+
+The Web Survey MVC unit tests now run on .NET Framework 4.8:
+
+```powershell
+.\eng\Invoke-WebSurveyTestBaseline.ps1
+```
+
+`Epi.Web.Test` uses NuGet NUnit 5.0.0 and NUnit3TestAdapter 6.3.1 instead of an absent machine-installed NUnit 2, with hand-written fakes for the current `ISurveyFacade` and HTTP context. Its 56 tests characterize current Home/Final/Survey/ViewSwitcher controller behavior, mobile user-agent detection, the browser-override cookie, form rendering (including server-emitted jQuery Mobile and validationEngine markup), validation, and response JSON. The obsolete `SurveyController.Notify` test was rewritten rather than restoring the removed action. The runner fails on zero discovery, a change from 56 tests, or any failure. Excluded and recorded: `Epi.Web.SurveyManager.Test` (database), response creation/save and check-code success paths (survey service), `Global.asax` display-mode registration (inline in `Application_Start`; extracting a method would be a reviewed production change), and email notification. `Epi.Web.Test` is not part of the solution, so the solution build does not compile it.
+
+The Desktop MongoDB round-trip is opt-in and requires an **authorized, disposable** server:
+
+```powershell
+.\eng\Invoke-DesktopMongoRoundTrip.ps1 -BuildOnly
+.\eng\Invoke-DesktopMongoRoundTrip.ps1 -ConnectionString '<uri>' -ConfirmDisposableServer
+```
+
+The probe runs as x86 under the `EpiInfo.exe.config` binding redirects. It has no default server, passes the URI via a process-only environment variable, redacts credentials, creates only an `epiinfo_roundtrip_<guid>` database, refuses an existing name and drops only that database. It round-trips synthetic documents with no compression, snappy, zlib and zstd, treats compression as proven only when the server's compression counters increase, and exercises the `Epi.Data.MongoDB` adapter. Results go to `artifacts\tests\DesktopMongo\`. The evidence run used a local Docker `mongo:6.0` container (server 6.0.28) bound to 127.0.0.1 with no volume and `--networkMessageCompressors=snappy,zstd,zlib`; see [PRIORITIES.md](PRIORITIES.md) for its two product findings.
 
 ### Remaining test-project triage
 
 | Repository / project | Current classification |
 | --- | --- |
-| Community Edition `Epi.UnitTests` | Four focused numerical methods pass. The two means tests have expected-result CSVs but lack `MeansTestData.csv`; matched-logistic input data exists, but its four expected-result CSVs are absent. The missing fixtures were not found in local Git history; see [means evidence issue #15](https://github.com/Epi-Info/Epi-Info-Community-Edition/issues/15) and [matched-logistic evidence issue #16](https://github.com/Epi-Info/Epi-Info-Community-Edition/issues/16). |
+| Community Edition `Epi.UnitTests` | Four focused numerical methods and 23 check-code/form-metadata tests pass. The two means tests have expected-result CSVs but lack `MeansTestData.csv`; matched-logistic input data exists, but its four expected-result CSVs are absent. The missing fixtures were not found in any local ref, reflog or unreachable object, upstream branch/tag/release, the 12 public forks, GitHub code search, other Epi-Info repositories or CDC documentation; see [means evidence issue #15](https://github.com/Epi-Info/Epi-Info-Community-Edition/issues/15) and [matched-logistic evidence issue #16](https://github.com/Epi-Info/Epi-Info-Community-Edition/issues/16). |
 | Community Edition `Tests` | `CreateMapImage` depends on a machine-specific `C:\_CODE\...chi.map7` path; not run. |
 | Cloud `MetadataTests` | Seventeen local tests pass, including a Service Bus controller test using an injected local fake. Missing-file, live-service, four stale property-count tests, and a DAO test without assertions remain excluded and recorded. |
 | Cloud `ResourceTests` | Two local tests pass; initial centrally managed PackageReference pilot. |
@@ -138,7 +163,7 @@ It intentionally runs only the one test compiled into that project. The separate
 | Cloud `PublishAndRepublishTest` | One test is empty; the other controls a remote WebJob. Do not run locally. |
 | Cloud nested `Epi.Web.UnitTests\Epi.Web.Test` | Copied legacy NUnit MVC tests with stale test doubles and the obsolete `SurveyController.Notify` call; not yet a baseline. |
 | Cloud nested `Epi.Web.UnitTests\Epi.Web.SurveyManager.Test` | Publisher/DAO-oriented tests; require a local database-backed contract fixture before execution. |
-| Web Survey `Epi.Web.Test` | NUnit project is blocked by framework/dependency drift, stale test doubles, and a removed controller action. |
+| Web Survey `Epi.Web.Test` | 56 tests pass on net48 with NuGet NUnit 5; service, database, IIS and SMTP paths excluded and recorded. |
 | Web Survey `Epi.Web.SurveyManager.Test` | Publisher tests use `EntitySurveyInfoDao`; isolate a local persistence contract before execution. |
 | Web Enter `Epi.Web.Test` | Copied NUnit MVC suite has the same legacy target/dependency and mock drift; contains an obsolete controller-action call. |
 | Web Enter `Epi.Web.SurveyManager.Test` | Publisher tests use `EntitySurveyInfoDao`; isolate a local persistence contract before execution. |
@@ -167,6 +192,6 @@ The build runner redirects final assembly output away from tracked application b
 **On hold at the user's request:** do not create or enable CI workflows until the user resumes this work. When resumed, keep CI workflows and release lanes independent in each repository. Shared workflow hosting, permissions, and ownership have not been established, so no remote workflows or deployment jobs are assumed here.
 
 - Use a Windows runner with the documented Visual Studio Build Tools components and workspace-local NuGet/reference-assembly bootstrap.
-- Treat `eng\Invoke-Build.ps1` as the canonical workspace build command and run Desktop numerical plus Cloud metadata/resource/Cosmos baselines as separate test steps. For hosted per-repository CI, pin or host this shared logic only after its location and permissions are agreed.
+- Treat `eng\Invoke-Build.ps1` as the canonical workspace build command and run the Desktop unit, Web Survey unit and Cloud metadata/resource/Cosmos baselines as separate test steps. Keep the MongoDB round-trip out of standard CI unless a disposable service container is explicitly provisioned. For hosted per-repository CI, pin or host this shared logic only after its location and permissions are agreed.
 - Publish restore/build logs, result JSON, TRX files, and build outputs as CI artifacts; fail if selected test discovery is zero or any selected test fails.
-- Keep stale Web NUnit projects and external-service/database tests excluded until their local test seams and contracts are ready; never invoke publishing or remote WebJob controls in standard CI.
+- Keep the stale Web Enter NUnit project and external-service/database tests excluded until their local test seams and contracts are ready; never invoke publishing or remote WebJob controls in standard CI.
