@@ -71,14 +71,15 @@ behavior-changing work.
    supports jQuery 1.6.4/1.7.1. It proposes a test-gated sequence: one jQuery
    per layout, jQuery Migrate as a diagnostic stage, replacing jQuery Mobile
    and its plugins, then jQuery 3.7.1 and jQuery UI/Bootstrap updates.
-   Implementation waits for the characterization seams listed there.
+   Display-mode and static layout-asset characterization are now in the test
+   baseline; hosted browser behavior and other seams remain open.
 4. **Retarget maintained web projects to .NET Framework 4.8.** Treat this as a
    compatibility stage, not a migration to a new architecture. Start with
    products confirmed to be maintained or deployed; validate hosting,
    authentication, session, WCF and database behavior before release.
-5. **Modernize the web test harness.** Web Survey `Epi.Web.Test` now runs 56
-   tests on net48 with NuGet NUnit 5 and a runner that fails on zero
-   discovery. Apply the same approach to Web Enter's copied NUnit suite.
+5. **Modernize the web test harness.** Web Survey and Web Enter now run 102
+   and 79 tests respectively on net48 with NuGet NUnit 5. Their runners fail
+   on zero discovery; database, service and hosted paths remain excluded.
 6. **Upgrade web dependency families in coordinated steps.** After focused
    tests exist, address MVC/Web API/Razor/WebPages together, then EF 5 to EF 6.
    Treat JSON alignment as lower urgency because the current Newtonsoft

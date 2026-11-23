@@ -367,7 +367,7 @@ The brief's target is jQuery **3.7.1**, paired with jQuery Migrate **3.x** (**I*
 | S8 | **Static layout harness pages**: one HTML per layout loading its exact script stack (from S6) plus fixture form markup; assert no console errors at load and that the expected `$.fn.*` plugins are defined (would catch the Bootstrap guard and mobile `dialog`/`autocomplete` gaps) | headless browser | no ASP.NET host |
 | S9 | **Hosted browser smoke** (B1 survey desktop: entry, validation, masks, date/time, dialogs, idle timeout, check-code; B2 survey mobile with the same items plus datebox and checkboxradio; B3 SurveyManager/Report: export, charts, modals, tooltips; plus a keyboard/a11y pass) | Playwright against IIS Express | **yes**: test root `Web.config`, DB/WCF fakes or a seeded environment |
 
-S1–S6 can be built now in the Web Survey NUnit project once its harness is repaired. S7–S8 need only a headless browser and static files. S9 depends on resolving the absent root `Web.config` (BUILDING.md).
+The Web Survey NUnit baseline now covers custom display-mode selection and static layout asset order and existence (S2 and parts of S3/S6). It does not render Razor, run JavaScript, or cover the built-in mobile override in IIS; view-level and orphan inventory checks also remain. S7–S8 need only a headless browser and static files. S9 depends on resolving the absent root `Web.config` (BUILDING.md).
 
 ## 11. Unknowns
 

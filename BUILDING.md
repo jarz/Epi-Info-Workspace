@@ -138,7 +138,7 @@ The Web Survey MVC unit tests now run on .NET Framework 4.8:
 .\eng\Invoke-WebSurveyTestBaseline.ps1
 ```
 
-`Epi.Web.Test` uses NuGet NUnit 5.0.0 and NUnit3TestAdapter 6.3.1 instead of an absent machine-installed NUnit 2, with hand-written fakes for the current `ISurveyFacade` and HTTP context. Its 56 tests characterize current Home/Final/Survey/ViewSwitcher controller behavior, mobile user-agent detection, the browser-override cookie, form rendering (including server-emitted jQuery Mobile and validationEngine markup), validation, and response JSON. The obsolete `SurveyController.Notify` test was rewritten rather than restoring the removed action. The runner fails on zero discovery, a change from 56 tests, or any failure. Excluded and recorded: `Epi.Web.SurveyManager.Test` (database), response creation/save and check-code success paths (survey service), `Global.asax` display-mode registration (inline in `Application_Start`; extracting a method would be a reviewed production change), and email notification. `Epi.Web.Test` is not part of the solution, so the solution build does not compile it.
+`Epi.Web.Test` uses NuGet NUnit 5.0.0 and NUnit3TestAdapter 6.3.1 instead of an absent machine-installed NUnit 2, with hand-written fakes for the current `ISurveyFacade` and HTTP context. Its 102 tests characterize controller behavior, form rendering and response JSON, display-mode selection and static layout asset references. Display-mode registration was extracted without changing its order or behavior. The obsolete `SurveyController.Notify` test was rewritten rather than restoring the removed action. The runner fails on zero discovery, a change from 102 tests, or any failure. Excluded and recorded: database and survey-service paths, email, the built-in mobile mode with a browser override, and hosted Razor/browser behavior. The asset tests inspect source rather than executing Razor or JavaScript; see [the browser inventory](WEB-SURVEY-BROWSER-ASSETS.md) for remaining gates. `Epi.Web.Test` is not part of the solution, so the solution build does not compile it.
 
 The Web Enter MVC unit tests also run on .NET Framework 4.8:
 
@@ -182,7 +182,7 @@ The probe runs as x86 under the `EpiInfo.exe.config` binding redirects. It has n
 | Cloud `PublishAndRepublishTest` | One test is empty; the other controls a remote WebJob. Do not run locally. |
 | Cloud nested `Epi.Web.UnitTests\Epi.Web.Test` | Copied legacy NUnit MVC tests with stale test doubles and the obsolete `SurveyController.Notify` call; not yet a baseline. |
 | Cloud nested `Epi.Web.UnitTests\Epi.Web.SurveyManager.Test` | Publisher/DAO-oriented tests; require a local database-backed contract fixture before execution. |
-| Web Survey `Epi.Web.Test` | 56 tests pass on net48 with NuGet NUnit 5; service, database, IIS and SMTP paths excluded and recorded. |
+| Web Survey `Epi.Web.Test` | 102 tests pass on net48 with NuGet NUnit 5; service, database, hosted rendering and SMTP paths excluded and recorded. |
 | Web Survey `Epi.Web.SurveyManager.Test` | Publisher tests use `EntitySurveyInfoDao`; isolate a local persistence contract before execution. |
 | Web Enter `Epi.Web.Test` | 79 tests pass on net48 with NuGet NUnit 5; service, database, directory/OIDC, IIS and SMTP paths excluded and recorded. |
 | Web Enter `Epi.Web.SurveyManager.Test` | Publisher tests use `EntitySurveyInfoDao`; isolate a local persistence contract before execution. |
@@ -213,4 +213,4 @@ The build runner redirects final assembly output away from tracked application b
 - Use a Windows runner with the documented Visual Studio Build Tools components and workspace-local NuGet/reference-assembly bootstrap.
 - Treat `eng\Invoke-Build.ps1` as the canonical workspace build command and run the Desktop unit, Web Survey unit, Web Enter unit and Cloud metadata/resource/Cosmos baselines as separate test steps. Keep the MongoDB round-trip out of standard CI unless a disposable service container is explicitly provisioned. For hosted per-repository CI, pin or host this shared logic only after its location and permissions are agreed.
 - Publish restore/build logs, result JSON, TRX files, and build outputs as CI artifacts; fail if selected test discovery is zero or any selected test fails.
-- Keep the stale Web Enter NUnit project and external-service/database tests excluded until their local test seams and contracts are ready; never invoke publishing or remote WebJob controls in standard CI.
+- Keep external-service/database tests and the stale Cloud nested NUnit projects excluded until their local test seams and contracts are ready; never invoke publishing or remote WebJob controls in standard CI.
