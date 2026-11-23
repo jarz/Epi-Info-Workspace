@@ -164,9 +164,21 @@ The Desktop MongoDB round-trip is opt-in and requires an **authorized, disposabl
 ```powershell
 .\eng\Invoke-DesktopMongoRoundTrip.ps1 -BuildOnly
 .\eng\Invoke-DesktopMongoRoundTrip.ps1 -ConnectionString '<uri>' -ConfirmDisposableServer
+# Or start a throwaway local container, run the probe and remove the container:
+.\eng\Invoke-DisposableMongoRoundTrip.ps1 -Image mongo:8.0 [-DesktopBinDirectory <app folder>]
 ```
 
-The probe runs as x86 under the `EpiInfo.exe.config` binding redirects and checks the MongoDB.Driver/Bson 3.14.1, Snappier 1.3.1, SharpCompress 0.48.1 and ZstdSharp 0.7.3 runtime versions. It has no default server, passes the URI via a process-only environment variable, redacts credentials, creates only an `epiinfo_roundtrip_<guid>` database, refuses an existing name and drops only that database. It round-trips synthetic documents with no compression, snappy, zlib and zstd, treats compression as proven only when the server's compression counters increase, and exercises the `Epi.Data.MongoDB` adapter. Results go to `artifacts\tests\DesktopMongo\`. Disposable MongoDB 4.4.30, 6.0.28 and 8.0.38 runs passed CRUD and compression checks. Driver 3.14.1 requires MongoDB 4.4 or newer; deployed server versions remain unknown. Cross-version testing confirmed that legacy subtype-3 and standard subtype-4 GUID data remain readable across driver 2.19 and 3.14.1. The adapter's local-time date shift remains a known failure; see [PRIORITIES.md](PRIORITIES.md).
+The probe runs as x86 under the `EpiInfo.exe.config` binding redirects and checks the MongoDB.Driver/Bson 3.14.1, Snappier 1.3.1, SharpCompress 0.48.1 and ZstdSharp 0.7.3 runtime versions. It has no default server, passes the URI via a process-only environment variable, redacts credentials, creates only an `epiinfo_roundtrip_<guid>` database, refuses an existing name and drops only that database. It round-trips synthetic documents with no compression, snappy, zlib and zstd, treats compression as proven only when the server's compression counters increase, and exercises the `Epi.Data.MongoDB` adapter. Results go to `artifacts\tests\DesktopMongo\`.
+
+`Invoke-DisposableMongoRoundTrip.ps1` requires a running Docker engine. It starts the image with authentication and all three network compressors enabled, tmpfs data directories, a loopback-only port and a generated password passed only through the process environment. It fails unless an unauthenticated command is rejected, and it always removes the container. The extracted MSI layout passed every check except the known date shift against MongoDB 4.4.30, 7.0.48, 8.0.38, 8.2.12 and 9.0.8; an earlier non-MSI run passed against 6.0.28. MongoDB 4.4 is the supported minimum, which is driver 3.14.1's minimum; see [PRIORITIES.md](PRIORITIES.md) for the server policy. Cross-version testing confirmed that legacy subtype-3 and standard subtype-4 GUID data remain readable across driver 2.19 and 3.14.1. The adapter's local-time date shift is reported as `adapter.dateTimeRoundTrip` failing and makes the probe exit non-zero until it is fixed.
+
+The Desktop installer is built separately from `Epi Info 7.sln`, using Microsoft Visual Studio Installer Projects in Visual Studio:
+
+1. Copy a Desktop Release output to the gitignored `Epi-Info-Community-Edition\build\Epi Info 7` folder. Remove a stale `MongoDB.Driver.Core.dll` if an older build left one there.
+2. Build a solution that contains only `Setup\Setup.vdproj`: `devenv.com <SetupOnly.sln> /Build "Release|Default"`. The MSI goes to `Setup\Release\Setup\EI7_Setup.msi`.
+3. Inspect the payload without installing: `msiexec /a <msi> /qn TARGETDIR=<scratch folder>`.
+
+Community Edition `5c159148` builds this way without scratch-generated files. Setup reports 67 unique pre-existing warnings, including unresolved EPPlus and System.Net.Http 4.2.0.0 dependencies and Windows system files it should exclude.
 
 ### Remaining test-project triage
 
