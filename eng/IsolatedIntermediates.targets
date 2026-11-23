@@ -1,0 +1,13 @@
+<Project>
+  <!--
+    Imported through CustomBeforeMicrosoftCommonTargets, before Microsoft.Common.CurrentVersion.targets
+    assigns its obj\ defaults. Set IsolatedIntermediateRoot to keep intermediates out of the source tree.
+    The paths are assigned unconditionally because projects importing Microsoft.Common.props already
+    defaulted BaseIntermediateOutputPath to obj\.
+  -->
+  <PropertyGroup Condition="'$(IsolatedIntermediateRoot)' != ''">
+    <BaseIntermediateOutputPath>$([MSBuild]::EnsureTrailingSlash('$(IsolatedIntermediateRoot)'))$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <IntermediateOutputPath Condition="'$(Platform)' == '' or '$(Platform)' == 'AnyCPU'">$(BaseIntermediateOutputPath)$(Configuration)\</IntermediateOutputPath>
+    <IntermediateOutputPath Condition="'$(Platform)' != '' and '$(Platform)' != 'AnyCPU'">$(BaseIntermediateOutputPath)$(Platform)\$(Configuration)\</IntermediateOutputPath>
+  </PropertyGroup>
+</Project>

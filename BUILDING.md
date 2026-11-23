@@ -140,6 +140,25 @@ The Web Survey MVC unit tests now run on .NET Framework 4.8:
 
 `Epi.Web.Test` uses NuGet NUnit 5.0.0 and NUnit3TestAdapter 6.3.1 instead of an absent machine-installed NUnit 2, with hand-written fakes for the current `ISurveyFacade` and HTTP context. Its 56 tests characterize current Home/Final/Survey/ViewSwitcher controller behavior, mobile user-agent detection, the browser-override cookie, form rendering (including server-emitted jQuery Mobile and validationEngine markup), validation, and response JSON. The obsolete `SurveyController.Notify` test was rewritten rather than restoring the removed action. The runner fails on zero discovery, a change from 56 tests, or any failure. Excluded and recorded: `Epi.Web.SurveyManager.Test` (database), response creation/save and check-code success paths (survey service), `Global.asax` display-mode registration (inline in `Application_Start`; extracting a method would be a reviewed production change), and email notification. `Epi.Web.Test` is not part of the solution, so the solution build does not compile it.
 
+The Web Enter MVC unit tests also run on .NET Framework 4.8:
+
+```powershell
+.\eng\Invoke-WebEnterTestBaseline.ps1 -IncludeSolutionBuild
+```
+
+`-IncludeSolutionBuild` first rebuilds `Epi Info Web Enter.sln` in Release as a build baseline; omit it to build only the test project and its project references. `-WebEnterDirectory` selects a checkout other than the sibling `Epi-Info-Web-Enter`, and `-ArtifactsDirectory` (default `artifacts`) relocates all output. Packages restore from nuget.org into the checkout's ignored `packages` folder. Binaries go to `artifacts\bin\WebEnter\` and `artifacts\bin\WebEnterTests\`; [IsolatedIntermediates.targets](eng/IsolatedIntermediates.targets) redirects every project's `obj\` to `artifacts\obj\`, so the source checkout receives no build output. Logs, the TRX and a JSON result (including the exclusion list) go to `artifacts\tests\WebEnter\`.
+
+Like Web Survey, `Epi.Web.Test` uses NuGet NUnit 5.0.0 and NUnit3TestAdapter 6.3.1 with hand-written fakes for `ISurveyFacade` and the HTTP context, uses synthetic data only, and is not part of the solution. Its 79 tests characterize current behavior of the Home controller (landing page and organization selection, response listing with saved sort/search, delete, unlock and concurrency checks), the Final, Report, Response, Post (`UnescapeCodes`) and ViewSwitcher controllers, `SurveyHelper` (mobile detection, GUID/passcode helpers, response XML merging and user-id encryption), and `FormProvider` desktop/mobile form building, validation and HTML. The two obsolete tests for removed Home actions were deleted rather than restoring those actions. The runner fails on zero discovery, a change from 79 tests, or any failure, and lists each failed test with its message. Excluded and recorded:
+
+- `Epi.Web.SurveyManager.Test` (SQL data layer; separate stale project outside the solution).
+- Survey-service (WCF) and check-code paths: Home POST `Index`/`Edit` and `GetSettings`/`SaveSettings`, `SurveyController`, `FormResponseController`, Final POST and `EIWSTController`.
+- Service, Active Directory and OIDC sign-in: `AdminOrganizationController`, `AdminUserController` and `LoginController`.
+- SMTP: the Home, EIWST and Post `Notify` actions.
+- `FormsAuthentication` paths that need an IIS-hosted request: all LogOut/SignOut actions and the invalid-user-id branch of `SurveyHelper.GetDecryptUserId`.
+- `Epi.Web.SurveyManager.Client` (interactive WCF client) and `Global.asax` Unity/WCF startup.
+
+The suite records current behavior, including the `Erorr` token returned by a failed response unlock. Known product issues not covered: `PostController.UnescapeCodes` passes a position where `Substring` expects a length, corrupting input with two or more escapes; the solution's Newtonsoft.Json 6.0.6 reports advisory NU1903.
+
 The Desktop MongoDB round-trip is opt-in and requires an **authorized, disposable** server:
 
 ```powershell
@@ -165,7 +184,7 @@ The probe runs as x86 under the `EpiInfo.exe.config` binding redirects. It has n
 | Cloud nested `Epi.Web.UnitTests\Epi.Web.SurveyManager.Test` | Publisher/DAO-oriented tests; require a local database-backed contract fixture before execution. |
 | Web Survey `Epi.Web.Test` | 56 tests pass on net48 with NuGet NUnit 5; service, database, IIS and SMTP paths excluded and recorded. |
 | Web Survey `Epi.Web.SurveyManager.Test` | Publisher tests use `EntitySurveyInfoDao`; isolate a local persistence contract before execution. |
-| Web Enter `Epi.Web.Test` | Copied NUnit MVC suite has the same legacy target/dependency and mock drift; contains an obsolete controller-action call. |
+| Web Enter `Epi.Web.Test` | 79 tests pass on net48 with NuGet NUnit 5; service, database, directory/OIDC, IIS and SMTP paths excluded and recorded. |
 | Web Enter `Epi.Web.SurveyManager.Test` | Publisher tests use `EntitySurveyInfoDao`; isolate a local persistence contract before execution. |
 
 No separate test projects were found in the Survey API or Database repositories. External-service and database tests stay gated until they can run against synthetic data in an authorized environment.
@@ -192,6 +211,6 @@ The build runner redirects final assembly output away from tracked application b
 **On hold at the user's request:** do not create or enable CI workflows until the user resumes this work. When resumed, keep CI workflows and release lanes independent in each repository. Shared workflow hosting, permissions, and ownership have not been established, so no remote workflows or deployment jobs are assumed here.
 
 - Use a Windows runner with the documented Visual Studio Build Tools components and workspace-local NuGet/reference-assembly bootstrap.
-- Treat `eng\Invoke-Build.ps1` as the canonical workspace build command and run the Desktop unit, Web Survey unit and Cloud metadata/resource/Cosmos baselines as separate test steps. Keep the MongoDB round-trip out of standard CI unless a disposable service container is explicitly provisioned. For hosted per-repository CI, pin or host this shared logic only after its location and permissions are agreed.
+- Treat `eng\Invoke-Build.ps1` as the canonical workspace build command and run the Desktop unit, Web Survey unit, Web Enter unit and Cloud metadata/resource/Cosmos baselines as separate test steps. Keep the MongoDB round-trip out of standard CI unless a disposable service container is explicitly provisioned. For hosted per-repository CI, pin or host this shared logic only after its location and permissions are agreed.
 - Publish restore/build logs, result JSON, TRX files, and build outputs as CI artifacts; fail if selected test discovery is zero or any selected test fails.
 - Keep the stale Web Enter NUnit project and external-service/database tests excluded until their local test seams and contracts are ready; never invoke publishing or remote WebJob controls in standard CI.
