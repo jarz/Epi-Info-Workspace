@@ -71,8 +71,12 @@ compatibility minimums and tests; Cloud migration remains deferred.
    existing "no devices" path. Setup still packages copies of the Windows
    `PortableDeviceApi.dll` and `PortableDeviceTypes.dll` system files, with the
    same warnings as before; consider excluding them separately.
-   Track the runtime/deployment evidence in
-   [fork issue #3](https://github.com/jarz/Epi-Info-Community-Edition/issues/3).
+   Runtime evidence is recorded in closed
+   [fork issue #3](https://github.com/jarz/Epi-Info-Community-Edition/issues/3);
+   the date shift is tracked in
+   [fork issue #4](https://github.com/jarz/Epi-Info-Community-Edition/issues/4)
+   and MSI install/upgrade validation in
+   [fork issue #5](https://github.com/jarz/Epi-Info-Community-Edition/issues/5).
 3. **Inventory and update Web Survey browser assets.** The inventory found
    that [`packages.config`](https://github.com/jarz/Epi-Info-Web-Survey/blob/master/Epi.Web/packages.config)
    declares jQuery 3.5.0, while the primary
