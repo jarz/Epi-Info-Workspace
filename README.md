@@ -7,17 +7,17 @@ contain or combine the product code; each product stays in its own repository.
 ## Set up a new workspace
 
 Clone this repository and the product forks side by side in one parent
-directory. The named branches contain the build and test changes described
-here; Database Web has no corresponding changes and uses its default branch.
+directory. The default branches contain the build and test changes described
+here; Database Web has no corresponding changes.
 
 ```powershell
 Set-Location C:\ei
 git clone https://github.com/jarz/Epi-Info-Workspace.git
-git clone --branch copilot/build-and-test-baseline https://github.com/jarz/Epi-Info-Community-Edition.git
-git clone --branch copilot/build-and-test-baseline https://github.com/jarz/Epi-Info-Web-Survey.git
-git clone --branch copilot/build-and-test-baseline https://github.com/jarz/Epi-Info-Web-Enter.git
-git clone --branch copilot/build-and-test-baseline https://github.com/jarz/Epi-Info-Survey-API.git
-git clone --branch copilot/build-and-test-baseline https://github.com/jarz/Epi-Info-Cloud-Contact-Tracing.git
+git clone https://github.com/jarz/Epi-Info-Community-Edition.git
+git clone https://github.com/jarz/Epi-Info-Web-Survey.git
+git clone https://github.com/jarz/Epi-Info-Web-Enter.git
+git clone https://github.com/jarz/Epi-Info-Survey-API.git
+git clone https://github.com/jarz/Epi-Info-Cloud-Contact-Tracing.git
 git clone https://github.com/jarz/Epi-Info-Database-Web.git
 ```
 

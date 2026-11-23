@@ -54,14 +54,14 @@ behavior-changing work.
    and `DeleteTable` reports success without deleting.
    Tracked in [fork issue #3](https://github.com/jarz/Epi-Info-Community-Edition/issues/3).
 3. **Inventory and update Web Survey browser assets.** The inventory found
-   that [`packages.config`](https://github.com/jarz/Epi-Info-Web-Survey/blob/copilot/build-and-test-baseline/Epi.Web/packages.config)
+   that [`packages.config`](https://github.com/jarz/Epi-Info-Web-Survey/blob/master/Epi.Web/packages.config)
    declares jQuery 3.5.0, while the primary
-   [layout](https://github.com/jarz/Epi-Info-Web-Survey/blob/copilot/build-and-test-baseline/Epi.Web/Views/Shared/_Layout.cshtml)
+   [layout](https://github.com/jarz/Epi-Info-Web-Survey/blob/master/Epi.Web/Views/Shared/_Layout.cshtml)
    directly loads jQuery 1.7.1. The report layout loads jQuery 1.12.4 from a
    CDN. The mobile layout loads both jQuery 1.6.3 and 1.7.1 before jQuery Mobile
    1.1.1; `Global.asax.cs` registers that mobile display mode for Android,
    Opera Mobile and iPad, with a browser override. The
-   [jquery bundle](https://github.com/jarz/Epi-Info-Web-Survey/blob/copilot/build-and-test-baseline/Epi.Web/App_Start/BundleConfig.cs)
+   [jquery bundle](https://github.com/jarz/Epi-Info-Web-Survey/blob/master/Epi.Web/App_Start/BundleConfig.cs)
    has a `jquery-1.*` wildcard, but no `Scripts.Render` call was found in the
    views. Do not just update the package manifest. The
    [browser asset inventory](WEB-SURVEY-BROWSER-ASSETS.md) confirms that none

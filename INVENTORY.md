@@ -15,7 +15,7 @@ Snapshot: 2026-11-21. This is an inventory of the six local checkouts, not a cla
 
 There are **131 project files**: 125 C# projects, one VB project, one SQL project, two Azure cloud projects, one PowerShell project and one installer project. One C# project is malformed. There are seven solutions, including the Cloud compatibility sub-solution. Project-file counts include projects outside the primary solutions.
 
-None of the projects use SDK-style project format. The Cloud `ResourceTests` project is the initial packages.config-to-PackageReference migration and centrally retains both MSTest versions. In Community Edition, the existing Newtonsoft.Json `PackageReference` in [Epi.Data.EpiWeb](https://github.com/jarz/Epi-Info-Community-Edition/blob/copilot/build-and-test-baseline/Epi.Data.EpiWeb/Epi.Data.EpiWeb.csproj) is centrally managed at its unchanged 13.0.2 version. Neither pilot changes a runtime package version; SDK-style conversion is not a prerequisite for Central Package Management.
+None of the projects use SDK-style project format. The Cloud `ResourceTests` project is the initial packages.config-to-PackageReference migration and centrally retains both MSTest versions. In Community Edition, the existing Newtonsoft.Json `PackageReference` in [Epi.Data.EpiWeb](https://github.com/jarz/Epi-Info-Community-Edition/blob/master/Epi.Data.EpiWeb/Epi.Data.EpiWeb.csproj) is centrally managed at its unchanged 13.0.2 version. Neither pilot changes a runtime package version; SDK-style conversion is not a prerequisite for Central Package Management.
 
 ## Dependency evidence
 
@@ -26,7 +26,7 @@ None of the projects use SDK-style project format. The Cloud `ResourceTests` pro
 - Assemblies such as `Epi.Web.BLL`, `Epi.Web.EF`, `Epi.Web.DynamicForms`, `Epi.Web.MVC` and `EpiInfo.Plugin` are independently defined in multiple repositories. Do not merge projects by assembly name alone.
 - Framework targets range from 4.0 through 4.8, plus Silverlight 5. The `v5.0` project is **Silverlight**, not modern .NET 5.
 - Desktop has a Visual Studio installer `.vdproj`. The normal Release solution does **not** build it. Cloud also has a `.pssproj` with an empty Build target; success there would not validate deployment.
-- [Epi.Web_Bad.csproj](https://github.com/jarz/Epi-Info-Web-Survey/blob/copilot/build-and-test-baseline/Epi.Web/Epi.Web_Bad.csproj) contains invalid XML. It is not in the primary solution and was recorded, not silently ignored or deleted.
+- [Epi.Web_Bad.csproj](https://github.com/jarz/Epi-Info-Web-Survey/blob/master/Epi.Web/Epi.Web_Bad.csproj) contains invalid XML. It is not in the primary solution and was recorded, not silently ignored or deleted.
 
 ### Representative version drift
 
@@ -40,7 +40,7 @@ None of the projects use SDK-style project format. The Cloud `ResourceTests` pro
 | Azure clients | Legacy WindowsAzure.Storage, DocumentDB, WindowsAzure.ServiceBus, Redis and WebJobs packages |
 | Test infrastructure | NUnit 2, legacy Visual Studio MSTest and MSTest 1.1.18; several tests excluded from production solutions |
 
-Manifest versions do not necessarily match loaded assets. For example, Web Survey declares jQuery 3.5.0, but [BundleConfig](https://github.com/jarz/Epi-Info-Web-Survey/blob/copilot/build-and-test-baseline/Epi.Web/App_Start/BundleConfig.cs) selects `jquery-1.*`. NuGet restore does not rewrite these bundles or install-script-managed browser assets.
+Manifest versions do not necessarily match loaded assets. For example, Web Survey declares jQuery 3.5.0, but [BundleConfig](https://github.com/jarz/Epi-Info-Web-Survey/blob/master/Epi.Web/App_Start/BundleConfig.cs) selects `jquery-1.*`. NuGet restore does not rewrite these bundles or install-script-managed browser assets.
 
 Restore reported dependency advisories, including high severity for [Snappier 1.0.0](https://github.com/advisories/GHSA-pggp-6c3x-2xmx) and moderate severity for [SharpCompress 0.32.2](https://github.com/advisories/GHSA-6c8g-7p36-r338), plus numerous old browser/Azure/JSON dependencies. These are package-feed warnings, not an application exploitability assessment.
 
