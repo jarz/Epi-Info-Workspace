@@ -212,7 +212,11 @@ namespace Epi.Tools.MongoRoundTrip
             // so the result shows what the host binding redirects actually deliver.
             BsonArray resolutions = new BsonArray();
             bool allResolved = true;
-            foreach (string root in new[] { "MongoDB.Driver", "MongoDB.Driver.Core", "MongoDB.Bson", "Epi.Data.MongoDB" })
+            // MongoDB.Driver.Core was merged into MongoDB.Driver in 3.0; only probe it for a 2.x cohort.
+            string[] roots = typeof(MongoClient).Assembly.GetName().Version.Major < 3
+                ? new[] { "MongoDB.Driver", "MongoDB.Driver.Core", "MongoDB.Bson", "Epi.Data.MongoDB" }
+                : new[] { "MongoDB.Driver", "MongoDB.Bson", "Epi.Data.MongoDB" };
+            foreach (string root in roots)
             {
                 Assembly rootAssembly;
                 try
@@ -268,11 +272,14 @@ namespace Epi.Tools.MongoRoundTrip
             Version snappier = VersionOf("Snappier");
             Version sharpCompress = VersionOf("SharpCompress");
             Version driver = VersionOf("MongoDB.Driver");
-            bool expected = snappier == new Version(1, 3, 1, 0) && sharpCompress == new Version(0, 48, 1, 0) && driver == new Version(2, 19, 0, 0);
+            Version bson = VersionOf("MongoDB.Bson");
+            Version zstd = VersionOf("ZstdSharp");
+            bool expected = snappier == new Version(1, 3, 1, 0) && sharpCompress == new Version(0, 48, 1, 0)
+                && zstd == new Version(0, 7, 3, 0) && driver == new Version(3, 14, 1, 0) && bson == new Version(3, 14, 1, 0);
             report.Add("assemblies.remediatedVersions", expected ? Status.Passed : Status.Failed, new BsonDocument
             {
-                { "MongoDB.Driver", Str(driver) }, { "Snappier", Str(snappier) }, { "SharpCompress", Str(sharpCompress) }, { "ZstdSharp", Str(VersionOf("ZstdSharp")) },
-                { "expected", "MongoDB.Driver 2.19.0.0, Snappier 1.3.1.0, SharpCompress 0.48.1.0" }
+                { "MongoDB.Driver", Str(driver) }, { "MongoDB.Bson", Str(bson) }, { "Snappier", Str(snappier) }, { "SharpCompress", Str(sharpCompress) }, { "ZstdSharp", Str(zstd) },
+                { "expected", "MongoDB.Driver 3.14.1.0, MongoDB.Bson 3.14.1.0, Snappier 1.3.1.0, SharpCompress 0.48.1.0, ZstdSharp 0.7.3.0" }
             });
         }
 
@@ -775,9 +782,9 @@ namespace Epi.Tools.MongoRoundTrip
                 { "counter", (long)seq },
                 { "nested", new BsonDocument { { "level", 1 }, { "inner", new BsonDocument { { "level", 2 }, { "values", new BsonArray { 1, 2.5, "three" } } } } } },
                 { "array", new BsonArray { seq, "item-" + seq, BsonNull.Value, new BsonDocument("k", seq), new BsonArray { true, false } } },
-                // Epi Info never sets GuidRepresentation, so use the driver 2.19 default (V2 mode, CSharpLegacy, subtype 3);
-                // a Standard-tagged Guid would be silently re-encoded to legacy subtype 3 on write by that default.
+                // Preserve legacy subtype 3 alongside standard subtype 4 during driver-major compatibility checks.
                 { "uuid", new BsonBinaryData(new Guid(seq + 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11), GuidRepresentation.CSharpLegacy) },
+                { "uuidStandard", new BsonBinaryData(new Guid(seq + 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11), GuidRepresentation.Standard) },
                 { "blob", new BsonBinaryData(SyntheticPayload(128 * 1024, seq)) }
             };
         }
@@ -796,8 +803,7 @@ namespace Epi.Tools.MongoRoundTrip
             return bytes;
         }
 
-        // Driver 2.19 (GuidRepresentationMode V2) BsonBinaryData.Equals also compares the client-side GuidRepresentation
-        // tag, which is not on the wire and is not restored on read, so compare what the server stores: subtype and bytes.
+        // Compare what the server stores (subtype and bytes); driver 2.x BsonBinaryData.Equals also compared a client-side tag.
         private static bool BinaryEquals(BsonBinaryData expected, BsonBinaryData actual)
         {
             return expected.SubType == actual.SubType && expected.Bytes.SequenceEqual(actual.Bytes);

@@ -8,7 +8,10 @@ param(
     [string]$OutputDirectory,
     [switch]$SkipAdapter,
     # Compile and stage the probe only; no connection string or server is needed.
-    [switch]$BuildOnly
+    [switch]$BuildOnly,
+    # Optional overrides so an isolated build/output can be probed without touching artifacts.
+    [string]$ProbeSource,
+    [string]$ProbeDirectory
 )
 
 $ErrorActionPreference = 'Stop'
@@ -28,10 +31,14 @@ if ([string]::IsNullOrWhiteSpace($OutputDirectory)) { $OutputDirectory = Join-Pa
 $DesktopBinDirectory = [IO.Path]::GetFullPath($DesktopBinDirectory)
 
 $hostConfig = Join-Path $DesktopBinDirectory 'EpiInfo.exe.config'
-foreach ($required in @('Epi.Core.dll', 'Epi.Data.MongoDB.dll', 'MongoDB.Driver.dll', 'MongoDB.Driver.Core.dll', 'MongoDB.Bson.dll', 'Snappier.dll', 'SharpCompress.dll', 'ZstdSharp.dll', 'EpiInfo.exe.config')) {
+foreach ($required in @('Epi.Core.dll', 'Epi.Data.MongoDB.dll', 'MongoDB.Driver.dll', 'MongoDB.Bson.dll', 'Snappier.dll', 'SharpCompress.dll', 'ZstdSharp.dll', 'EpiInfo.exe.config')) {
     if (-not (Test-Path -LiteralPath (Join-Path $DesktopBinDirectory $required))) {
         throw "Desktop Release output is missing $required in $DesktopBinDirectory. Build Desktop Release (eng\Invoke-Build.ps1) or pass -DesktopBinDirectory."
     }
+}
+$driverVersion = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $DesktopBinDirectory 'MongoDB.Driver.dll')).Version
+if ($driverVersion.Major -lt 3 -and -not (Test-Path -LiteralPath (Join-Path $DesktopBinDirectory 'MongoDB.Driver.Core.dll'))) {
+    throw "MongoDB.Driver $driverVersion requires MongoDB.Driver.Core.dll, which is missing from $DesktopBinDirectory."
 }
 $hostConfigText = Get-Content -LiteralPath $hostConfig -Raw
 foreach ($redirect in @('name="Snappier"', 'name="SharpCompress"', 'name="ZstdSharp"')) {
@@ -47,16 +54,21 @@ if (-not (Test-Path $csc)) { throw "Roslyn compiler was not found: $csc" }
 $referenceDirectory = "${env:ProgramFiles(x86)}\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8"
 if (-not (Test-Path (Join-Path $referenceDirectory 'mscorlib.dll'))) { throw ".NET Framework 4.8 targeting pack was not found: $referenceDirectory" }
 
-$probeSource = Join-Path $PSScriptRoot 'probes\MongoRoundTrip\Program.cs'
-$probeDirectory = Join-Path $workspace 'artifacts\probes\DesktopMongoRoundTrip'
+$probeSource = if ($ProbeSource) { [IO.Path]::GetFullPath($ProbeSource) } else { Join-Path $PSScriptRoot 'probes\MongoRoundTrip\Program.cs' }
+$probeDirectory = if ($ProbeDirectory) { [IO.Path]::GetFullPath($ProbeDirectory) } else { Join-Path $workspace 'artifacts\probes\DesktopMongoRoundTrip' }
 $probeExe = Join-Path $probeDirectory 'Epi.MongoRoundTripProbe.exe'
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmssfff'
 New-Item -ItemType Directory -Path $probeDirectory, $OutputDirectory -Force | Out-Null
+if ($driverVersion.Major -ge 3) {
+    $staleDriverCore = Join-Path $probeDirectory 'MongoDB.Driver.Core.dll'
+    if (Test-Path -LiteralPath $staleDriverCore) { Remove-Item -LiteralPath $staleDriverCore -Force }
+}
 
 Write-Output '=== Staging Desktop Release assemblies beside the probe ==='
 # The probe must resolve dependencies exactly as EpiInfo.exe does: same application base, same binding redirects.
 $copied = 0
 foreach ($file in Get-ChildItem -LiteralPath $DesktopBinDirectory -Filter '*.dll' -File) {
+    if ($driverVersion.Major -ge 3 -and $file.Name -ieq 'MongoDB.Driver.Core.dll') { continue }
     $target = Join-Path $probeDirectory $file.Name
     $existing = Get-Item -LiteralPath $target -ErrorAction SilentlyContinue
     if (-not $existing -or $existing.Length -ne $file.Length -or $existing.LastWriteTimeUtc -ne $file.LastWriteTimeUtc) {
@@ -70,7 +82,10 @@ Write-Output "Copied $copied changed assemblies; host config: EpiInfo.exe.config
 Write-Output '=== Compiling probe (x86, .NET Framework 4.8) ==='
 $references = @('mscorlib.dll', 'System.dll', 'System.Core.dll', 'System.Data.dll', 'System.Xml.dll', 'Facades\System.Runtime.dll', 'Facades\netstandard.dll') |
     ForEach-Object { '/reference:' + (Join-Path $referenceDirectory $_) }
-$references += @('MongoDB.Bson.dll', 'MongoDB.Driver.dll', 'MongoDB.Driver.Core.dll', 'Epi.Core.dll') |
+# MongoDB.Driver.Core.dll only exists for driver 2.x; 3.x merged it into MongoDB.Driver.dll.
+$probeAssemblies = @('MongoDB.Bson.dll', 'MongoDB.Driver.dll', 'Epi.Core.dll')
+if ($driverVersion.Major -lt 3) { $probeAssemblies += 'MongoDB.Driver.Core.dll' }
+$references += $probeAssemblies |
     ForEach-Object { '/reference:' + (Join-Path $probeDirectory $_) }
 $compileLog = Join-Path $OutputDirectory "desktop-mongo-probe-compile-$timestamp.log"
 & $csc /nologo /noconfig /nostdlib+ /target:exe /platform:x86 /optimize+ /langversion:7.3 /warn:4 "/out:$probeExe" @references $probeSource *> $compileLog
