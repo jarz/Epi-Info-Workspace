@@ -52,6 +52,7 @@ behavior-changing work.
    The probe also recorded existing adapter gaps: the factory does not
    pass the connection string, `InsertBulkRows` does not await its writes,
    and `DeleteTable` reports success without deleting.
+   Tracked in [fork issue #3](https://github.com/jarz/Epi-Info-Community-Edition/issues/3).
 3. **Inventory and update Web Survey browser assets.** The inventory found
    that [`packages.config`](https://github.com/jarz/Epi-Info-Web-Survey/blob/copilot/build-and-test-baseline/Epi.Web/packages.config)
    declares jQuery 3.5.0, while the primary
