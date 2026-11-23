@@ -2,7 +2,10 @@
 param(
     [string]$Root,
     [string]$NuGet,
-    [string]$OutputDirectory
+    [string]$OutputDirectory,
+    # Optional overrides so a separate Web Survey worktree can be tested without writing to shared artifacts.
+    [string]$WebSurveyDirectory,
+    [string]$BinaryDirectory
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,16 +28,20 @@ if (-not (Test-Path (Join-Path $workspace 'scratch\framework-packages\Microsoft.
     throw 'Run eng\Initialize-Build.ps1 first to restore private legacy targeting assemblies.'
 }
 
-$webSurveyDirectory = Join-Path $Root 'Epi-Info-Web-Survey'
+if ([string]::IsNullOrWhiteSpace($WebSurveyDirectory)) { $WebSurveyDirectory = Join-Path $Root 'Epi-Info-Web-Survey' }
+if ([string]::IsNullOrWhiteSpace($BinaryDirectory)) { $BinaryDirectory = Join-Path $workspace 'artifacts\bin\WebSurveyTests\Release' }
+$webSurveyDirectory = $WebSurveyDirectory
 $solution = Join-Path $webSurveyDirectory 'Epi Info Web Survey.sln'
 $project = Join-Path $webSurveyDirectory 'Epi.Web.Test\Epi.Web.Test.csproj'
 $testPackagesConfig = Join-Path $webSurveyDirectory 'Epi.Web.Test\packages.config'
 $packageDirectory = Join-Path $webSurveyDirectory 'packages'
 $adapterPath = Join-Path $packageDirectory 'NUnit3TestAdapter.6.3.1\build\net462'
-$binaryDirectory = Join-Path $workspace 'artifacts\bin\WebSurveyTests\Release\'
+# MSBuild OutDir must end with a directory separator.
+$binaryDirectory = $BinaryDirectory.TrimEnd('\', '/') + '\'
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmssfff'
 # Every discovered test must run; a drop in this count means tests were silently lost.
-$expectedTotal = 56
+# 56 controller/model tests + 27 display-mode tests + 19 static layout asset tests.
+$expectedTotal = 102
 
 foreach ($path in @($solution, $project, $testPackagesConfig)) {
     if (-not (Test-Path $path)) { throw "Required Web Survey test input does not exist: $path" }
@@ -71,7 +78,8 @@ if (-not (Test-Path $assembly)) { throw "Test assembly was not produced: $assemb
 $excludedTests = @(
     'Epi.Web.SurveyManager.Test (separate project): uses EntitySurveyInfoDao against a SQL database.',
     'HomeController POST Index (Begin Survey) and SurveyController GET/POST success paths: create or save responses through the survey service/repository (WCF) and execute check code over a live response hierarchy.',
-    'Global.asax.cs Application_Start display modes (Mobile for Android, Opera Mobi, iPad): registered inline beside AreaRegistration, Unity bootstrapping, and WCF proxies, so they need an IIS-hosted application; no testable seam without a production refactor.',
+    'Built-in MVC "Mobile" display mode under a browser-override cookie: needs ASP.NET browser-capability detection from a hosted AppDomain (custom Android/Opera Mobi/iPad modes are covered through DisplayModeConfig).',
+    'Razor rendering, the real view engine, and browser runtime of layouts (script execution, CDN loads, CSS url() images): need an IIS-hosted application with a root Web.config and WCF/database services; layout assets are checked statically only.',
     'FinalController POST Index and email notification: send through the survey service and SMTP.'
 )
 
