@@ -7,7 +7,7 @@ param(
 )
 
 # Builds Epi.UnitTests (Release, x86) and runs the Desktop numerical baselines plus the evidence-based
-# check-code and form-metadata tests. Fails on zero discovery, a missing expected test, or any failure.
+# check-code, form-metadata and MongoDB date-conversion tests. Fails on zero discovery, a missing expected test, or any failure.
 
 $ErrorActionPreference = 'Stop'
 $workspace = Split-Path -Path $PSScriptRoot -Parent
@@ -42,11 +42,12 @@ $requiredTests = @(
     'Epi.UnitTests.AdvancedAnalysisTests.LinearRegressionTest',
     'Epi.UnitTests.AdvancedAnalysisTests.LogisticRegressionTest'
 )
-# Whole test classes that need no Jet/ACE, OLE DB, UI or EpiInfo.Config.xml.
+# Whole test classes that need no Jet/ACE, OLE DB, UI, EpiInfo.Config.xml or MongoDB server.
 $requiredClasses = @(
     'Epi.UnitTests.CheckCode.CheckCodeGrammarTests',
     'Epi.UnitTests.CheckCode.CheckCodeExecutionTests',
-    'Epi.UnitTests.FormMetadata.FormMetadataTests'
+    'Epi.UnitTests.FormMetadata.FormMetadataTests',
+    'Epi.UnitTests.MongoDBAdapter.MongoDBDateTimeTests'
 )
 $filter = (@($requiredTests | ForEach-Object { "FullyQualifiedName=$_" }) + @($requiredClasses | ForEach-Object { "FullyQualifiedName~$_." })) -join '|'
 
@@ -83,7 +84,7 @@ if (-not (Test-Path $adapterPath)) { throw "MSTest adapter was not restored: $ad
 $assembly = Join-Path $binaryDirectory 'Epi.UnitTests.dll'
 if (-not (Test-Path $assembly)) { throw "Test assembly was not produced: $assembly" }
 
-Write-Output '=== Running Desktop numerical, check-code and form-metadata tests ==='
+Write-Output '=== Running Desktop numerical, check-code, form-metadata and MongoDB date tests ==='
 $previousErrorActionPreference = $ErrorActionPreference
 try {
     $ErrorActionPreference = 'Continue'

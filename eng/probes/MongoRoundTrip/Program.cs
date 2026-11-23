@@ -679,8 +679,8 @@ namespace Epi.Tools.MongoRoundTrip
                 {
                     dateDetails["classification"] = "ProductDefect (Epi.Data.MongoDB), not a probe or dependency-cohort issue";
                     dateDetails["finding"] =
-                        "Epi.Data.MongoDB shifts DateTime values by the local UTC offset on a write/read round trip. Write: MongoDBDatabase.InsertBulkRows (Epi.Data.MongoDB\\MongoDBDatabase.cs:1583) builds new BsonDateTime((DateTime)reader[y]), which treats Kind=Unspecified as local time and stores it converted to UTC. Read: MongoDBWrapper.SetValue (Epi.Data.MongoDB\\Wrappers\\MongoDBWrapper.cs:206) assigns the BsonDateTime to a DateTime column (type from GetDataType, MongoDBWrapper.cs:250-253), which yields the UTC value without converting back to local.                         Invisible on machines whose local offset is zero.";
-                                            report.Add("adapter.dateTimeRoundTrip", Status.Failed, dateDetails);
+                        "Epi.Data.MongoDB shifted DateTime values by the local UTC offset on a write/read round trip (fork issue jarz/Epi-Info-Community-Edition#4). Write: MongoDBDatabase.InsertBulkRows builds new BsonDateTime((DateTime)reader[y]), which treats Kind=Unspecified as local time and stores it converted to UTC. Read: MongoDBWrapper.SetValue must convert stored UTC instants back to local time (MongoDBWrapper.ToDataValue); this result means the application folder predates that fix or the conversion was bypassed. Invisible on machines whose local offset is zero.";
+                    report.Add("adapter.dateTimeRoundTrip", Status.Failed, dateDetails);
                 }
                 else
                 {

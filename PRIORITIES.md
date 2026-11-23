@@ -25,7 +25,7 @@ compatibility minimums and tests; Cloud migration remains deferred.
    the patched compression libraries; this also resolves the zlib break that
    occurred when patched SharpCompress was forced under driver 2.19.
 
-   **Validation:** the Desktop Release rebuild and 27 focused tests pass.
+   **Validation:** the Desktop Release rebuild and 30 focused tests pass.
    A clean Setup build of `5c159148` produced `EI7_Setup.msi` without
    scratch files. Its administratively extracted application folder passed
    x86 synthetic CRUD with no compression, snappy, zlib and zstd against
@@ -55,9 +55,22 @@ compatibility minimums and tests; Cloud migration remains deferred.
    use was found in the repository source. Reassess those capabilities if a
    consumer relies on them.
 
-   **Unchanged product defects:** the adapter shifts date/time values by the
-   local UTC offset; `InsertBulkRows` does not await its writes; and
-   `DeleteTable` reports success without deleting. These are separate fixes.
+   **Fixed date shift:** `InsertBulkRows` stores local wall-clock values as
+   UTC instants, but reads showed the UTC wall-clock time, so dates moved by
+   the local UTC offset (US Eastern 13:45 read back as 18:45). Community
+   Edition `673af43f` converts stored dates to the reader's local time zone.
+   Stored data is unchanged, so no migration is needed and records written
+   by earlier builds display correctly. Readers in another time zone see
+   their own local time; a date-only value written at midnight shows as the
+   previous day to a reader west of the writer. Three unit tests pin this
+   behavior. The rebuilt Release application folder passed every check,
+   including `adapter.dateTimeRoundTrip`, against disposable MongoDB 4.4.30,
+   6.0.28, 7.0.48, 8.0.38, 8.2.12 and 9.0.8; the pre-fix adapter still fails
+   that check against 8.0.38. The MSI was not rebuilt for this change.
+
+   **Unchanged product defects:** `InsertBulkRows` does not await its writes,
+   and `DeleteTable` reports success without deleting. These are separate
+   fixes.
 
    **Fixed installer gap:** the checked-in `PortableDevices.dll` needs
    `Interop.PortableDeviceApiLib.dll` and `Interop.PortableDeviceTypesLib.dll`
@@ -72,10 +85,10 @@ compatibility minimums and tests; Cloud migration remains deferred.
    `PortableDeviceApi.dll` and `PortableDeviceTypes.dll` system files, with the
    same warnings as before; consider excluding them separately.
    Runtime evidence is recorded in closed
-   [fork issue #3](https://github.com/jarz/Epi-Info-Community-Edition/issues/3);
-   the date shift is tracked in
-   [fork issue #4](https://github.com/jarz/Epi-Info-Community-Edition/issues/4)
-   and MSI install/upgrade validation in
+   [fork issue #3](https://github.com/jarz/Epi-Info-Community-Edition/issues/3)
+   and the date-shift fix in closed
+   [fork issue #4](https://github.com/jarz/Epi-Info-Community-Edition/issues/4);
+   MSI install/upgrade validation is tracked in
    [fork issue #5](https://github.com/jarz/Epi-Info-Community-Edition/issues/5).
 3. **Inventory and update Web Survey browser assets.** The inventory found
    that [`packages.config`](https://github.com/jarz/Epi-Info-Web-Survey/blob/master/Epi.Web/packages.config)
