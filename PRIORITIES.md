@@ -151,13 +151,14 @@ analysis, MongoDB through the user interface, or MSI install/upgrade.
 The smoke test and follow-up checks found pre-existing map-service failures,
 tracked in [fork issue #6](https://github.com/jarz/Epi-Info-Community-Edition/issues/6):
 
-- **OpenStreetMap base map blocked (observed).** Mapping uses the vendored
-  ESRI WPF 10.2 `OpenStreetMapLayer`, which requests HTTP tiles without a
-  User-Agent. OpenStreetMap returns HTTP 200 with an `x-blocked` header and an
-  "Access blocked" image, so every tile shows that message. Replace it with a
-  tiled layer that follows the
-  [tile usage policy](https://operations.osmfoundation.org/policies/tiles/)
-  or with another provider.
+- **OpenStreetMap base map fixed and verified.** Mapping now uses the standard
+  HTTPS tile URL, an identifying User-Agent, a per-user disk cache that
+  observes response freshness headers and revalidates expired tiles, and
+  visible linked attribution. A live Mapping run rendered real tiles; a
+  repeat launch used the cache, and a forced stale tile returned HTTP 304.
+  The implementation follows the
+  [tile usage policy](https://operations.osmfoundation.org/policies/tiles/);
+  it requests only the interactive viewport and has no offline/prefetch mode.
 - **Zone buffers use a retired ESRI sample server.** `ZoneProvider` and the
   Dashboard `MapControl` buffer points through
   `sampleserver3.arcgisonline.com`, which did not resolve on 2026-11-23. The

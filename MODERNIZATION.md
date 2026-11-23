@@ -120,7 +120,7 @@ Owner: application/platform teams. Incremental replacement, not a whole-system r
 5. Fix browser dependency inventory: compare served bundles/assets with declarations.
 6. After package install-asset and ownership review, pilot packages.config-to-PackageReference in one suitable production library; the test-project migration and existing-reference centralization are already verified.
 7. On hold: define repository-specific CI ownership and reusable-workflow hosting when CI work resumes; keep release boundaries independent.
-8. Restore Desktop map services: a policy-compliant OpenStreetMap or replacement base map, zone buffers without the retired ESRI sample server, and a replacement for the embedded Bing Maps key ([fork issue #6](https://github.com/jarz/Epi-Info-Community-Edition/issues/6)).
+8. Restore Desktop map services: the policy-compliant OpenStreetMap base map is implemented and live-smoke-tested; still replace the retired ESRI sample geometry server for zone buffers and the embedded Bing Maps key/service ([fork issue #6](https://github.com/jarz/Epi-Info-Community-Edition/issues/6)).
 
 No schedule estimate is assigned until maintainers identify which products/deployments remain active, supported client OS/database versions, and the required legacy-client compatibility window.
 
