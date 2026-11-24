@@ -25,6 +25,8 @@ compatibility minimums and tests; Cloud migration remains deferred.
    key. The forks now refuse to start without deployment-specific values,
    check the admin key again, and provide `Epi.Web.KeyRotation` to move an
    existing deployment and its encrypted organization keys onto new keys.
+   Survey API also requires a distinct deployment-specific client key over
+   HTTPS; its prior hardcoded source value is retired.
    See [Web key material](BUILDING.md#web-key-material). Tracked
    configuration files also contain plaintext database credentials for the
    original operator's servers; only that operator can revoke them.

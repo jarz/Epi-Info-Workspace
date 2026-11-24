@@ -50,6 +50,7 @@ Targeted validation:
 ```powershell
 .\eng\Invoke-Build.ps1 -Repository WebSurvey,WebEnter -Rebuild
 .\eng\Invoke-Build.ps1 -Repository WebSurvey -Configuration Debug
+.\eng\Invoke-SurveyApiTestBaseline.ps1
 ```
 
 The runner finds full-framework MSBuild through vswhere, restores exact existing application package declarations using NuGet v3, disables the obsolete in-build restore, and uses bounded MSBuild parallelism. It records both restore and compile exit codes, continues to inspect other solutions after a failure, and throws if any requested solution fails.
@@ -159,6 +160,14 @@ Like Web Survey, `Epi.Web.Test` uses NuGet NUnit 5.0.0 and NUnit3TestAdapter 6.3
 
 The suite records current behavior, including the `Erorr` token returned by a failed response unlock. Known product issues not covered: `PostController.UnescapeCodes` passes a position where `Substring` expects a length, corrupting input with two or more escapes; the solution's Newtonsoft.Json 6.0.6 reports advisory NU1903.
 
+Survey API now has a focused NUnit baseline:
+
+```powershell
+.\eng\Invoke-SurveyApiTestBaseline.ps1
+```
+
+The 15 tests cover API-key format and matching, HTTPS enforcement, missing/malformed credentials, and the authenticated `SurveyId` requirement. They use only synthetic keys and local `HttpMessageHandler` requests; database lookup, hosted IIS behavior, and OAuth token endpoint behavior remain unvalidated.
+
 The Desktop MongoDB round-trip is opt-in and requires an **authorized, disposable** server:
 
 ```powershell
@@ -202,8 +211,9 @@ The subsequent OpenStreetMap fix was built and run from the isolated Desktop Rel
 | Web Survey `Epi.Web.SurveyManager.Test` | Publisher tests use `EntitySurveyInfoDao`; isolate a local persistence contract before execution. |
 | Web Enter `Epi.Web.Test` | 141 tests pass on net48 with NuGet NUnit 5; database, directory/OIDC, IIS and SMTP paths excluded and recorded. |
 | Web Enter `Epi.Web.SurveyManager.Test` | Publisher tests use `EntitySurveyInfoDao`; isolate a local persistence contract before execution. |
+| Survey API `Epi.Web.SurveyAPI.Tests` | 15 tests pass on net48 with NuGet NUnit 5; database lookup, hosted IIS, and OAuth paths remain excluded. |
 
-No separate test projects were found in the Survey API or Database repositories. External-service and database tests stay gated until they can run against synthetic data in an authorized environment.
+No separate test project was found in the Database repository. External-service and database tests stay gated until they can run against synthetic data in an authorized environment.
 
 ### Cloud property-count drift
 
@@ -232,7 +242,21 @@ Web Survey's DataService and ManagerService WCF versions now require a 64-charac
 
 The Web Enter `EWEDataService` WCF endpoint also requires a 64-character hexadecimal `DataServiceSharedKey` on every SOAP request and HTTPS transport. Configure the same deployment-specific value in the `Epi.Web` caller and WCF host's protected configuration; do not commit it. The external-mode `ENDPOINT_USED` URL must use HTTPS. The publish-host template leaves the key empty, which denies requests until configured. The in-process integrated mode does not use this SOAP credential.
 
-Validation: 49 Web Survey and 62 Web Enter unit tests, plus LocalDB end-to-end runs of both tools with synthetic keys and rows. Each run covered dry run, apply, row verification, a no-op second run, recovery from a restored backup, catching up a row left under the old keys after a configuration-only rotation, and a scan of the tool output for secrets. The service-auth tests exercise credential validation and client endpoint requirements; hosted IIS/WCF behavior still requires deployment validation. Survey API has no test project and was validated by its Release build only. Clients that send the admin key must use the deployment's new `AdminKey` GUID.
+Survey API response endpoints now require a separate deployment-specific 64-character hexadecimal `SurveyApiSharedKey` in the `X-Epi-Info-API-Key` header, in addition to the `SurveyId` header, and reject HTTP requests. Its OAuth token endpoint also rejects insecure HTTP. Set the same secret in the API host and every client; the checked-in host and console-client templates leave it blank and therefore reject requests. The only caller found in the repository is the console test client; update any external clients before deployment. The shared API key is an application-level gate, not individual-user authentication, and must not be embedded in distributable clients. The former hardcoded source value is considered compromised and must not be reused.
+
+Generate a key with a cryptographic random-number generator and keep it out of source control:
+
+```powershell
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$bytes = New-Object byte[] 32
+$rng.GetBytes($bytes)
+$surveyApiSharedKey = -join ($bytes | ForEach-Object { $_.ToString('x2') })
+$rng.Dispose()
+```
+
+Configure it in the API host's protected `Web.config` and the console client's protected `App.config`. Hosted IIS/API validation remains outstanding.
+
+Validation: 49 Web Survey and 62 Web Enter unit tests, plus LocalDB end-to-end runs of both tools with synthetic keys and rows. Each run covered dry run, apply, row verification, a no-op second run, recovery from a restored backup, catching up a row left under the old keys after a configuration-only rotation, and a scan of the tool output for secrets. The service-auth tests exercise credential validation and client endpoint requirements; hosted IIS/WCF behavior still requires deployment validation. Survey API's 15 focused tests pass with synthetic keys; database lookup, hosted API, and OAuth validation remain outstanding. Clients that send the admin key must use the deployment's new `AdminKey` GUID.
 
 Not addressed: tracked configuration files in all three repositories still contain plaintext connection strings with credentials for the original operator's database servers. Only that operator can revoke them; Git history was not rewritten.
 
