@@ -74,7 +74,7 @@ SSDT also has its own project output conventions; the database DACPAC can be fou
 | Desktop | Passed | Installer not selected by normal Release configuration; Silverlight and out-of-solution tests not certified |
 | Web Survey | Passed after reference repairs | Root web.config is absent; Razor views/runtime hosting, database and WCF connectivity not validated |
 | Web Enter | Passed after reference repairs | Authentication, browser assets, database and service connectivity not validated |
-| Survey API | Passed | Still has old compiler packages and bin/cross-checkout dependencies |
+| Survey API | Passed | CodeDom/compiler packages remain for ASP.NET runtime compilation; local bin assembly references still need modernization |
 | Database | Passed; DACPAC produced | Schema provider is SQL Server 2012; deployment/data migration not validated |
 | Cloud Contact Tracing | Passed | Release compilation succeeds with Azure Cloud Services 2.9 build tools installed; no Azure deployment was attempted |
 
@@ -166,7 +166,7 @@ Survey API now has a focused NUnit baseline:
 .\eng\Invoke-SurveyApiTestBaseline.ps1
 ```
 
-The 15 tests cover API-key format and matching, HTTPS enforcement, missing/malformed credentials, and the authenticated `SurveyId` requirement. They use only synthetic keys and local `HttpMessageHandler` requests; database lookup, hosted IIS behavior, and OAuth token endpoint behavior remain unvalidated.
+The 15 tests cover API-key format and matching, HTTPS enforcement, missing/malformed credentials, and the authenticated `SurveyId` requirement. They use only synthetic keys and local `HttpMessageHandler` requests; database lookup, hosted IIS behavior, and OAuth token endpoint behavior remain unvalidated. Cross-checkout MVC helper/Razor references now resolve to the Survey API checkout's own tracked assemblies. The old CodeDom/compiler packages are retained because the host config uses their Roslyn provider for runtime ASP.NET compilation; replacing them needs a hosted compilation check.
 
 The Desktop MongoDB round-trip is opt-in and requires an **authorized, disposable** server:
 
