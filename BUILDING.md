@@ -4,7 +4,7 @@
 
 These are **compilation/restore baselines**, not certified deployment packages or passing end-to-end tests. Existing checked-in vendor/application binaries still participate in some legacy references. A fully source-only, clean-agent build remains a modernization milestone.
 
-The workspace repository is checked out next to the six independent product repositories and tracks only shared tooling and documentation. Its scripts find the products in the workspace's parent directory (override with `-Root`). The scripts do not commit changes, install SQL Server, run database scripts or publish anything.
+The workspace repository is checked out next to the six independent product repositories and tracks only shared tooling and documentation. Its scripts find the products in the workspace's parent directory (override with `-Root`). Build scripts do not commit changes, install SQL Server, run database scripts or publish anything. The separately invoked Survey API database probe publishes a DACPAC only to its own newly created LocalDB instance.
 
 ## Prerequisites
 
@@ -74,7 +74,7 @@ SSDT also has its own project output conventions; the database DACPAC can be fou
 | Desktop | Passed | Installer not selected by normal Release configuration; Silverlight and out-of-solution tests not certified |
 | Web Survey | Passed after reference repairs | Root web.config is absent; Razor views/runtime hosting, database and WCF connectivity not validated |
 | Web Enter | Passed after reference repairs | Authentication, browser assets, database and service connectivity not validated |
-| Survey API | Passed | Targets .NET Framework 4.8; EPPlus still uses a local bin assembly. An isolated IIS Express Home Page request returned HTTP 200 and exercised Razor compilation with CodeDom 4.1.0; production hosting and API data paths remain unvalidated |
+| Survey API | Passed | Targets .NET Framework 4.8; EPPlus still uses a local bin assembly. An isolated IIS Express Home Page request exercised Razor compilation; a LocalDB probe exercises survey lookup and response DAO writes. Production hosting and complete HTTP response workflows remain unvalidated |
 | Database | Passed; DACPAC produced | Schema provider is SQL Server 2012; deployment/data migration not validated |
 | Cloud Contact Tracing | Passed | Release compilation succeeds with Azure Cloud Services 2.9 build tools installed; no Azure deployment was attempted |
 
@@ -166,7 +166,18 @@ Survey API now has a focused NUnit baseline:
 .\eng\Invoke-SurveyApiTestBaseline.ps1
 ```
 
-The 15 tests cover API-key format and matching, HTTPS enforcement, missing/malformed credentials, and the authenticated `SurveyId` requirement. They use only synthetic keys and local `HttpMessageHandler` requests. Database lookup and OAuth token endpoint behavior remain unvalidated. MVC, Razor, and WebPages resolve consistently from the declared NuGet packages. Survey API and its console client use Newtonsoft.Json 13.0.4; the API uses Microsoft.Owin 4.2.3, ASP.NET Identity 2.2.4, Bootstrap 3.4.1, jQuery 3.7.1, and jQuery Validation 1.21.0 to replace versions flagged by NuGet advisories. The latest restore reports no NU190x advisories for this solution. The API targets .NET Framework 4.8 and uses CodeDom 4.1.0. An isolated IIS Express/browser smoke test with synthetic keys rendered the Home Page, loaded jQuery 3.7.1 and Bootstrap, and confirmed the jQuery Validation required rule rejects an empty value. One Application Insights telemetry request returned HTTP 400; telemetry configuration was outside this test. Database lookup, OAuth token endpoint behavior, production IIS configuration, and deployment remain unvalidated.
+The 15 tests cover API-key format and matching, HTTPS enforcement, missing/malformed credentials, and the authenticated `SurveyId` requirement. They use only synthetic keys and local `HttpMessageHandler` requests. MVC, Razor, and WebPages resolve consistently from the declared NuGet packages. Survey API and its console client use Newtonsoft.Json 13.0.4; the API uses Microsoft.Owin 4.2.3, ASP.NET Identity 2.2.4, Bootstrap 3.4.1, jQuery 3.7.1, and jQuery Validation 1.21.0 to replace versions flagged by NuGet advisories. The latest restore reports no NU190x advisories for this solution. The API targets .NET Framework 4.8 and uses CodeDom 4.1.0. An isolated IIS Express/browser smoke test with synthetic keys rendered the Home Page, loaded jQuery 3.7.1 and Bootstrap, and confirmed the jQuery Validation required rule rejects an empty value. One Application Insights telemetry request returned HTTP 400; telemetry configuration was outside this test.
+
+The database probe requires Windows PowerShell, SQL Server LocalDB, Visual Studio's SqlPackage, and Release builds of SurveyApi and Database:
+
+```powershell
+.\eng\Invoke-Build.ps1 -Repository @('SurveyApi','Database') -Configuration Release -SkipRestore -Rebuild
+.\eng\Invoke-SurveyApiDatabaseProbe.ps1
+# To retain a new, isolated synthetic database for inspection:
+.\eng\Invoke-SurveyApiDatabaseProbe.ps1 -KeepDatabase
+```
+
+Each run creates a uniquely named LocalDB instance and deploys the complete Database project's DACPAC, with generated synthetic keys and rows. It tests repository lookup and organization-key decryption, authenticated handler lookup and rejection, missing surveys, surfaced data and database connection errors, Entity Framework response insert/read/update, and a synthetic answer sent through the real in-process Web API routing/controller/DAO pipeline. It does not host IIS or exercise OAuth. By default the probe drops only its own database and removes its own instance; `-KeepDatabase` retains both after success and prints their names and the synthetic configuration location. Connect using Windows authentication and the printed `(localdb)\...` server and database names. No existing instance or database is reused. Logs and synthetic configuration are under `artifacts\tests\SurveyApiDatabase`; never use these generated keys in production.
 
 The Desktop MongoDB round-trip is opt-in and requires an **authorized, disposable** server:
 
@@ -211,9 +222,9 @@ The subsequent OpenStreetMap fix was built and run from the isolated Desktop Rel
 | Web Survey `Epi.Web.SurveyManager.Test` | Publisher tests use `EntitySurveyInfoDao`; isolate a local persistence contract before execution. |
 | Web Enter `Epi.Web.Test` | 141 tests pass on net48 with NuGet NUnit 5; database, directory/OIDC, IIS and SMTP paths excluded and recorded. |
 | Web Enter `Epi.Web.SurveyManager.Test` | Publisher tests use `EntitySurveyInfoDao`; isolate a local persistence contract before execution. |
-| Survey API `Epi.Web.SurveyAPI.Tests` | 15 tests pass on net48 with NuGet NUnit 5; database lookup, hosted IIS, and OAuth paths remain excluded. |
+| Survey API `Epi.Web.SurveyAPI.Tests` | 15 tests pass on net48 with NuGet NUnit 5; the separate LocalDB probe covers database lookup and response DAO writes. Hosted API and OAuth paths remain excluded. |
 
-No separate test project was found in the Database repository. External-service and database tests stay gated until they can run against synthetic data in an authorized environment.
+No separate test project was found in the Database repository. External-service and other database tests stay gated until they can run against synthetic data in an authorized environment.
 
 ### Cloud property-count drift
 
@@ -256,7 +267,7 @@ $rng.Dispose()
 
 Configure it in the API host's protected `Web.config` and the console client's protected `App.config`. Hosted IIS/API validation remains outstanding.
 
-Validation: 49 Web Survey and 62 Web Enter unit tests, plus LocalDB end-to-end runs of both tools with synthetic keys and rows. Each run covered dry run, apply, row verification, a no-op second run, recovery from a restored backup, catching up a row left under the old keys after a configuration-only rotation, and a scan of the tool output for secrets. The service-auth tests exercise credential validation and client endpoint requirements; hosted IIS/WCF behavior still requires deployment validation. Survey API's 15 focused tests pass with synthetic keys; database lookup, hosted API, and OAuth validation remain outstanding. Clients that send the admin key must use the deployment's new `AdminKey` GUID.
+Validation: 49 Web Survey and 62 Web Enter unit tests, plus LocalDB end-to-end runs of both tools with synthetic keys and rows. Each run covered dry run, apply, row verification, a no-op second run, recovery from a restored backup, catching up a row left under the old keys after a configuration-only rotation, and a scan of the tool output for secrets. The service-auth tests exercise credential validation and client endpoint requirements; hosted IIS/WCF behavior still requires deployment validation. Survey API's 15 focused tests and separate LocalDB lookup/response DAO probe pass with synthetic keys; hosted API and OAuth validation remain outstanding. Clients that send the admin key must use the deployment's new `AdminKey` GUID.
 
 Not addressed: tracked configuration files in all three repositories still contain plaintext connection strings with credentials for the original operator's database servers. Only that operator can revoke them; Git history was not rewritten.
 
