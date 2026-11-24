@@ -46,8 +46,8 @@ $solutionIntermediateRoot = Join-Path $ArtifactsDirectory 'obj\WebEnter\'
 $intermediateRoot = Join-Path $ArtifactsDirectory 'obj\WebEnterTests\'
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmssfff'
 # Every discovered test must run; a drop in this count means tests were silently lost.
-# 79 controller/helper/form tests + 52 key-material/admin-key/password-salt/sign-in/key-rotation security tests.
-$expectedTotal = 131
+# 79 controller/helper/form tests + 62 key-material/admin-key/password-salt/sign-in/key-rotation/service-auth security tests.
+$expectedTotal = 141
 
 foreach ($path in @($solution, $project, $testPackagesConfig)) {
     if (-not (Test-Path $path)) { throw "Required Web Enter test input does not exist: $path" }

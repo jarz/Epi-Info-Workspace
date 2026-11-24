@@ -133,8 +133,8 @@ compatibility minimums and tests; Cloud migration remains deferred.
    products confirmed to be maintained or deployed; validate hosting,
    authentication, session, WCF and database behavior before release.
 5. **Modernize the web test harness.** Web Survey and Web Enter now run 141
-   and 131 tests respectively on net48 with NuGet NUnit 5. Their runners fail
-   on zero discovery; database, service and hosted paths remain excluded.
+   tests each on net48 with NuGet NUnit 5. Their runners fail on zero discovery;
+   database, hosted IIS/WCF and SMTP paths remain excluded.
 6. **Upgrade web dependency families in coordinated steps.** After focused
    tests exist, address MVC/Web API/Razor/WebPages together, then EF 5 to EF 6.
    Treat JSON alignment as lower urgency because the current Newtonsoft
