@@ -41,8 +41,8 @@ $binaryDirectory = $BinaryDirectory.TrimEnd('\', '/') + '\'
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmssfff'
 # Every discovered test must run; a drop in this count means tests were silently lost.
 # 56 controller/model tests + 27 display-mode tests + 19 static layout asset tests
-# + 39 key-material/admin-key/key-rotation security tests.
-$expectedTotal = 141
+# + 39 key-material/admin-key/key-rotation tests + 10 WCF service-authentication tests.
+$expectedTotal = 151
 
 foreach ($path in @($solution, $project, $testPackagesConfig)) {
     if (-not (Test-Path $path)) { throw "Required Web Survey test input does not exist: $path" }

@@ -132,7 +132,7 @@ compatibility minimums and tests; Cloud migration remains deferred.
    compatibility stage, not a migration to a new architecture. Start with
    products confirmed to be maintained or deployed; validate hosting,
    authentication, session, WCF and database behavior before release.
-5. **Modernize the web test harness.** Web Survey and Web Enter now run 141
+5. **Modernize the web test harness.** Web Survey now runs 151 and Web Enter runs 141
    tests each on net48 with NuGet NUnit 5. Their runners fail on zero discovery;
    database, hosted IIS/WCF and SMTP paths remain excluded.
 6. **Upgrade web dependency families in coordinated steps.** After focused
