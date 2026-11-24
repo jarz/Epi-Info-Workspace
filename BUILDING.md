@@ -74,7 +74,7 @@ SSDT also has its own project output conventions; the database DACPAC can be fou
 | Desktop | Passed | Installer not selected by normal Release configuration; Silverlight and out-of-solution tests not certified |
 | Web Survey | Passed after reference repairs | Root web.config is absent; Razor views/runtime hosting, database and WCF connectivity not validated |
 | Web Enter | Passed after reference repairs | Authentication, browser assets, database and service connectivity not validated |
-| Survey API | Passed | Targets .NET Framework 4.8; EPPlus still uses a local bin assembly. An isolated IIS Express Home Page request exercised Razor compilation; a LocalDB probe exercises survey lookup and response DAO writes. Production hosting and complete HTTP response workflows remain unvalidated |
+| Survey API | Passed | Targets .NET Framework 4.8; EPPlus still uses a local bin assembly. Isolated IIS Express tests exercised Razor and an HTTPS response submission backed by LocalDB. Production hosting and other response workflows remain unvalidated |
 | Database | Passed; DACPAC produced | Schema provider is SQL Server 2012; deployment/data migration not validated |
 | Cloud Contact Tracing | Passed | Release compilation succeeds with Azure Cloud Services 2.9 build tools installed; no Azure deployment was attempted |
 
@@ -179,6 +179,8 @@ The database probe requires Windows PowerShell, SQL Server LocalDB, Visual Studi
 
 Each run creates a uniquely named LocalDB instance and deploys the complete Database project's DACPAC, with generated synthetic keys and rows. It tests repository lookup and organization-key decryption, authenticated handler lookup and rejection, missing surveys, surfaced data and database connection errors, Entity Framework response insert/read/update, and a synthetic answer sent through the real in-process Web API routing/controller/DAO pipeline. It does not host IIS or exercise OAuth. By default the probe drops only its own database and removes its own instance; `-KeepDatabase` retains both after success and prints their names and the synthetic configuration location. Connect using Windows authentication and the printed `(localdb)\...` server and database names. No existing instance or database is reused. Logs and synthetic configuration are under `artifacts\tests\SurveyApiDatabase`; never use these generated keys in production.
 
+Separately, an isolated IIS Express site using the retained synthetic database accepted an HTTPS response submission with HTTP 201 and persisted the answer. It rejected HTTP API requests, an incorrect API key, and an unknown survey. The OAuth token endpoint rejected HTTP and an unauthorized HTTPS client; token issuance and user authentication were not tested. The client pinned the existing local IIS Express development certificate rather than validating a production trust chain, and telemetry assemblies were excluded from the temporary site. No production IIS configuration or external services were exercised.
+
 The Desktop MongoDB round-trip is opt-in and requires an **authorized, disposable** server:
 
 ```powershell
@@ -222,7 +224,7 @@ The subsequent OpenStreetMap fix was built and run from the isolated Desktop Rel
 | Web Survey `Epi.Web.SurveyManager.Test` | Publisher tests use `EntitySurveyInfoDao`; isolate a local persistence contract before execution. |
 | Web Enter `Epi.Web.Test` | 141 tests pass on net48 with NuGet NUnit 5; database, directory/OIDC, IIS and SMTP paths excluded and recorded. |
 | Web Enter `Epi.Web.SurveyManager.Test` | Publisher tests use `EntitySurveyInfoDao`; isolate a local persistence contract before execution. |
-| Survey API `Epi.Web.SurveyAPI.Tests` | 15 tests pass on net48 with NuGet NUnit 5; the separate LocalDB probe covers database lookup and response DAO writes. Hosted API and OAuth paths remain excluded. |
+| Survey API `Epi.Web.SurveyAPI.Tests` | 15 tests pass on net48 with NuGet NUnit 5; the separate LocalDB probe covers database lookup and response DAO writes. An isolated hosted submission and OAuth rejection smoke test also passed; token issuance remains excluded. |
 
 No separate test project was found in the Database repository. External-service and other database tests stay gated until they can run against synthetic data in an authorized environment.
 
@@ -265,9 +267,9 @@ $surveyApiSharedKey = -join ($bytes | ForEach-Object { $_.ToString('x2') })
 $rng.Dispose()
 ```
 
-Configure it in the API host's protected `Web.config` and the console client's protected `App.config`. Hosted IIS/API validation remains outstanding.
+Configure it in the API host's protected `Web.config` and the console client's protected `App.config`. Production IIS/API validation remains outstanding.
 
-Validation: 49 Web Survey and 62 Web Enter unit tests, plus LocalDB end-to-end runs of both tools with synthetic keys and rows. Each run covered dry run, apply, row verification, a no-op second run, recovery from a restored backup, catching up a row left under the old keys after a configuration-only rotation, and a scan of the tool output for secrets. The service-auth tests exercise credential validation and client endpoint requirements; hosted IIS/WCF behavior still requires deployment validation. Survey API's 15 focused tests and separate LocalDB lookup/response DAO probe pass with synthetic keys; hosted API and OAuth validation remain outstanding. Clients that send the admin key must use the deployment's new `AdminKey` GUID.
+Validation: 49 Web Survey and 62 Web Enter unit tests, plus LocalDB end-to-end runs of both tools with synthetic keys and rows. Each run covered dry run, apply, row verification, a no-op second run, recovery from a restored backup, catching up a row left under the old keys after a configuration-only rotation, and a scan of the tool output for secrets. The service-auth tests exercise credential validation and client endpoint requirements; hosted IIS/WCF behavior still requires deployment validation. Survey API's 15 focused tests, LocalDB lookup/response DAO probe, and isolated hosted submission and OAuth rejection smoke test pass with synthetic keys; production deployment and OAuth token issuance remain unvalidated. Clients that send the admin key must use the deployment's new `AdminKey` GUID.
 
 Not addressed: tracked configuration files in all three repositories still contain plaintext connection strings with credentials for the original operator's database servers. Only that operator can revoke them; Git history was not rewritten.
 
