@@ -166,7 +166,7 @@ Survey API now has a focused NUnit baseline:
 .\eng\Invoke-SurveyApiTestBaseline.ps1
 ```
 
-The 15 tests cover API-key format and matching, HTTPS enforcement, missing/malformed credentials, and the authenticated `SurveyId` requirement. They use only synthetic keys and local `HttpMessageHandler` requests. Database lookup and OAuth token endpoint behavior remain unvalidated. MVC, Razor, and WebPages resolve consistently from the declared NuGet packages. The API now targets .NET Framework 4.8 and uses CodeDom 4.1.0; an isolated IIS Express copy with synthetic keys returned HTTP 200 for the Home Page and exercised Razor runtime compilation. This does not validate API data paths, production IIS configuration, or deployment.
+The 15 tests cover API-key format and matching, HTTPS enforcement, missing/malformed credentials, and the authenticated `SurveyId` requirement. They use only synthetic keys and local `HttpMessageHandler` requests. Database lookup and OAuth token endpoint behavior remain unvalidated. MVC, Razor, and WebPages resolve consistently from the declared NuGet packages. The API and console test client use Newtonsoft.Json 13.0.4, replacing vulnerable 6.0.4 and 11.0.2. The API now targets .NET Framework 4.8 and uses CodeDom 4.1.0; an isolated IIS Express copy with synthetic keys returned HTTP 200 for the Home Page and exercised Razor runtime compilation. This does not validate API data paths, production IIS configuration, or deployment.
 
 The Desktop MongoDB round-trip is opt-in and requires an **authorized, disposable** server:
 
